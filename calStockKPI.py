@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotStockDiagram as plotStock
 import numpy  as np
+import time
+import tushare as ts
 """
 作者：eyeglasses
 链接：https://www.jianshu.com/p/69d5ff78a3e0
@@ -42,11 +44,11 @@ def get_ma_data(stock_data,ma_list=[5, 10, 20,30, 60, 120, 250]):
 
     # 计算简单算术移动平均线MA - 注意：stock_data['close']为股票每天的收盘价
     #for ma in ma_list:
-    #     result['MA_' + str(ma)] = pd.Series(data['close']).rolling(ma).mean()
+    #     result['MA_' + str(ma)] = pd.Series(stock_data['close']).rolling(ma).mean()
 
     # 计算指数平滑移动平均线EMA
     for ma in ma_list:
-        result['EMA_' + str(ma)] = pd.Series(data['close']).ewm(ma).mean()
+        result['EMA_' + str(ma)] = pd.Series(stock_data['close']).ewm(ma).mean()
 
     # 将数据按照交易日期从近到远排序
     #result.sort_values('date', ascending=False, inplace=True)
@@ -93,6 +95,66 @@ def get_K_MA_Pos(stock_data):
     result['cross30'] = np.where( (stock_data['open'] < stock_data['EMA_30']) & (stock_data['close'] > stock_data['EMA_30']), 1, 0)
     return result
 
+def calAllStock():
+    ###获取股票代码列表
+    stock_info = ts.get_stock_basics()
+    code_list = stock_info.index.tolist()
+    # 制定下载的Ktype  D=日k线 W=周 M=月 5=5分钟 15=15分钟 30=30分钟 60=60分钟
+    ktypelist = ['D', '30', 'W', 'M']
+
+    currentTime = time.time()
+    print("Start to calculate all %s" % (currentTime))
+    n=1
+    for code in code_list:
+        for ktype in ktypelist:
+            filename = 'D:/stockdata/' + code + '/' + code + '_' + ktype + '.csv'
+            df = pd.read_csv(filename, index_col=0)
+            df.drop_duplicates(subset='date', keep='last', inplace=True)
+            #将DF进行过滤，只计算前面220个点
+            df = df.tail(220)
+            # 计算均线，MACD，均线和K线关系，以及不同点涨幅等信息
+            df = get_ma_data(df).merge(df, on='date')
+            df = get_macd_data(df).merge(df, on='date')
+            df = get_K_MA_Pos(df).merge(df, on='date')
+            df = get_pos_per(df).merge(df, on='date')
+            n = n+1
+            if (n%100 == 0):
+                print("finish %s" % n)
+                newtime = time.time()
+                print("Total spend time is %d" % (newtime - currentTime))
+
+
+def realCalAllStock():
+    ###获取股票代码列表
+    stock_info = ts.get_stock_basics()
+    code_list = stock_info.index.tolist()
+    # 制定下载的Ktype  D=日k线 W=周 M=月 5=5分钟 15=15分钟 30=30分钟 60=60分钟
+    ktypelist = ['D', '30', 'W', 'M']
+
+    currentTime = time.time()
+    print("Start to read all histody data from %s" % (currentTime))
+    n=1
+    dfRepository = pd.DataFrame(index='code', columns=('code','30','D','W','W'))
+    for code in code_list:
+        for ktype in ktypelist:
+            filename = 'D:/stockdata/' + code + '/' + code + '_' + ktype + '.csv'
+            df = pd.DataFrame()
+            df = pd.read_csv(filename, index_col=0)
+            df.drop_duplicates(subset='date', keep='last', inplace=True)
+            #将DF进行过滤，只计算前面220个点
+            df = df.tail(220)
+            # 计算均线，MACD，均线和K线关系，以及不同点涨幅等信息
+            df = get_ma_data(df).merge(df, on='date')
+            df = get_macd_data(df).merge(df, on='date')
+            df = get_K_MA_Pos(df).merge(df, on='date')
+            df = get_pos_per(df).merge(df, on='date')
+            #dfRepository.set_value()
+            n = n+1
+            if (n%100 == 0):
+                newtime = time.time()
+                print("Read all histody data finish %n, Spend time %d" % (n, newtime - currentTime))
+
+
 """
 talib可以用来计算均值
 """
@@ -100,6 +162,9 @@ talib可以用来计算均值
 
 
 if __name__ == '__main__':
+    calAllStock()
+
+"""
     filename = 'D:/stockdata/000001/000001_D.csv'
     filenameout = 'D:/stockdata/000001/000001_D_res.csv'
     data = pd.read_csv(filename, index_col=0)
@@ -116,7 +181,7 @@ if __name__ == '__main__':
     data = get_pos_per(data).merge(data, on='date')
     print(data)
     data.to_csv(filenameout, mode='w', float_format='%.2f', index=False)
-
+"""
 """
     fig = plt.figure(facecolor='#07000d', figsize=(15, 10))
     = plt.subplot2grid((5, 4), (0, 0), rowspan=4, colspan=4, facecolor='k')

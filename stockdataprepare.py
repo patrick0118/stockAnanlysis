@@ -72,6 +72,49 @@ def getAllInitData():
         my_thread.start()
 
 
+# mode='all'全量获取，
+# mode='inc'增量获取，获取该目录下已经存在的文件，并且增量获取数据后将两个合并
+def cleanAllData(ktypelist=['D', '30'], stock_code_list=None, threadname=None):
+    print("%s is starting to run \n" % threadname)  # 线程开始
+    # 开始下载，获取对应股票的数据，并保存在本地文件中,
+    n = 0
+    for code in stock_code_list:
+        for ktype in ktypelist:
+            filename = 'D:/stockdata/' + code + '/' + code + '_' + ktype + '.csv'
+            df = pd.read_csv(filename, index_col=0)
+            df.drop_duplicates(subset='date', keep='last', inplace=True)
+            df.to_csv(filename, mode='w', float_format='%.3f', index_label='Index')
+
+####将本地的数据进行一次去重的清洗
+def cleanAllDataMain():
+    starttime = time.time()
+    print("clean all data main start %s" % (starttime))
+    ###获取股票代码列表
+    stock_info = ts.get_stock_basics()
+    code_list = stock_info.index.tolist()
+    # 制定下载的Ktype  D=日k线 W=周 M=月 5=5分钟 15=15分钟 30=30分钟 60=60分钟
+    ktypelist = ['D', '30', 'W', 'M']
+
+    threadnum = 10
+    # 创建多线程下载
+    step = 3500 / threadnum
+    for i in range(threadnum):
+        start = int(i * step)
+        end = int((i + 1) * step)
+        # 将每个线程处理的code的范围确定下来
+        if i == threadnum - 1:
+            codelist = code_list[start:]
+        else:
+            codelist = code_list[start:end]
+        # _thread.start_new_thread(getKData, (ktypelist, codelist, "Thread %s" % i))
+        # getKData(ktypelist=ktypelist,stock_code_list=codelist,threadname="Thread %s" % i)
+        my_thread = threading.Thread(target=getKData, args=(ktypelist, codelist, "Thread %s" % i))
+        my_thread.start()
+
+    endtime = time.time()
+    print("Clean all data main finish %s" % (endtime))
+
+
 def incGetAllData(startDate='2013-01-01'):
     ###获取股票代码列表
     stock_info = ts.get_stock_basics()
@@ -95,4 +138,5 @@ def incGetAllData(startDate='2013-01-01'):
 
 
 # incGetAllInitData(startDate='2018-04-02')
-getAllInitData()
+#getAllInitData()
+incGetAllData(startDate='2019-2-22')

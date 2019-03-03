@@ -14,7 +14,7 @@ facecolor = '#00ffe8'
 绘制K线蜡烛图和均线K线图
 """
 def plotStockK(data, ax, malist = ['5','10','20']):
-    data = data.loc[len(data.index)-200:,:]
+    data = data.tail(200)
     data = data.reindex(columns=['date','open','high','low','close','EMA_5','EMA_10','EMA_20','EMA_30','EMA_60','EMA_120','EMA_250','volume'])
 
     #画蜡烛图
@@ -67,7 +67,7 @@ def plotStockK(data, ax, malist = ['5','10','20']):
 绘制MACD图
 """
 def plotStockMACD(data, ax):
-    data = data.loc[len(data.index)-200:,:]
+    data = data.tail(200)
     data = data.reindex(columns=['date','open','high','low','close','dif','dea','macd'])
 
     #画均线图
